@@ -1,0 +1,15 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Keys
+terra-key
+terra-key.pub
+
+# OS junk files
+.DS_Store
+
+# AWS installer
+awscliv2.pkg
+
