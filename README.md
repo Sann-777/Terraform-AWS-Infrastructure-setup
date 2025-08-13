@@ -431,4 +431,4 @@ Terraform made the process of provisioning AWS resources repeatable, automated, 
 
 ---
 
-I kept everything in **chronological learning order** — starting from installation, basic S3, EC2, then gradually moving to multi-instance, conditional logic, state management, and finally remote backend & workspaces. 
+I practiced everything in **chronological learning order** — starting from installation, basic S3, EC2, then gradually moving to multi-instance, conditional logic, state management, and finally remote backend & workspaces. 
