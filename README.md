@@ -1,9 +1,3 @@
-Got it — I’ll add that part about learning **variables** (via `.tfvars` / `variable` blocks) and **output** blocks for retrieving EC2 connection info locally without needing to open the AWS Console.
-
-Here’s the updated `README.md` with that section included in a formal tone.
-
----
-
 ````markdown
 # Terraform AWS Infrastructure Setup
 
@@ -81,7 +75,6 @@ This downloads required providers (e.g., AWS provider) and sets up the `.terrafo
    ```hcl
    resource "aws_s3_bucket" "test_bucket" {
      bucket = "my-terraform-test-bucket"
-     acl    = "private"
    }
    ```
 
@@ -108,28 +101,26 @@ This downloads required providers (e.g., AWS provider) and sets up the `.terrafo
 
 ### 5.1 Variables
 
-I learned to use **variable blocks** and separate **variable files** (`.tfvars`) to pass values dynamically during provisioning.
+I learned to use **variable blocks** to pass values dynamically during provisioning.
 This approach avoids hardcoding values such as VPC IDs, AMI IDs, or key names, making configurations reusable and flexible.
 
 Example (`variables.tf`):
 
 ```hcl
-variable "instance_type" {
-  description = "EC2 instance type"
-  default     = "t3.micro"
+variable "ec2_instance_type" {
+    default = "t3.micro"
+    type = string
 }
 
-variable "vpc_id" {
-  description = "VPC ID where resources will be deployed"
-  type        = string
+variable "ec2_root_storage_size" {
+    default = 10
+    type = number
 }
-```
 
-Example (`terraform.tfvars`):
-
-```hcl
-vpc_id         = "vpc-1234567890abcdef"
-instance_type  = "t3.micro"
+variable "ec2_ami_id" {
+    default = "ami-020cba7c55df1f615" # Ubuntu
+    type = string
+}
 ```
 
 ---
@@ -143,12 +134,17 @@ Example:
 ```hcl
 output "ec2_public_ip" {
   description = "Public IP of the EC2 instance"
-  value       = aws_instance.web_server.public_ip
+  value = aws_instance.my_instance.public_ip
 }
 
-output "ssh_connection_command" {
-  description = "Command to connect to the EC2 instance"
-  value       = "ssh -i terra-key-ec2 ec2-user@${aws_instance.web_server.public_ip}"
+output "ec2_public_dns" {
+  description = "Public DNS of the EC2 instance"
+  value = aws_instance.my_instance.public_dns
+}
+
+output "ec2_private_ip" {
+  description = "Private IP of the EC2 instance"
+  value = aws_instance.my_instance.private_ip
 }
 ```
 
@@ -180,31 +176,39 @@ This allows me to:
 Example:
 
 ```hcl
-resource "aws_security_group" "allow_ssh_http" {
-  name        = "allow_ssh_http"
-  description = "Allow SSH and HTTP"
-  vpc_id      = var.vpc_id
+resource aws_security_group my_security_group {
+    name = "automate-sg"
+    description = "this will add a TF generated security group"
+    vpc_id = aws_default_vpc.default.id # interpolation
 
-  ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    # inbound rules
+    ingress {
+        from_port = 22
+        to_port = 22
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"] # source IPs
+        description = "SSH access"
+    }
+    ingress {
+        from_port = 80
+        to_port = 80
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "HTTP access"
+    }
 
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    # outbound rules
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1" # all protocols
+        cidr_blocks = ["0.0.0.0/0"]
+        description = "all access open"
+    }
 
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    tags = {
+        Name = "automate-sg"
+    }
 }
 ```
 
@@ -219,16 +223,20 @@ resource "aws_security_group" "allow_ssh_http" {
 Example:
 
 ```hcl
-resource "aws_instance" "web_server" {
-  ami           = var.ami_id
-  instance_type = var.instance_type
-  key_name      = aws_key_pair.terra_key.key_name
-  vpc_security_group_ids = [aws_security_group.allow_ssh_http.id]
+resource "aws_instance" "my_instance" {
+    key_name = aws_key_pair.my_key.key_name
+    security_groups = [aws_security_group.my_security_group.name]
+    instance_type = var.ec2_instance_type
+    ami = var.ec2_ami_id
+    user_data = file("install_nginx.sh")
 
-  root_block_device {
-    volume_size = 8
-    volume_type = "gp2"
-  }
+    root_block_device {
+        volume_size = var.ec2_root_storage_size
+        volume_type = "gp3"
+    }
+    tags = {
+        Name = "automated-instance"
+    }
 }
 ```
 
@@ -262,20 +270,17 @@ terraform apply
 ├── ec2
 │   ├── ec2.tf
 │   ├── provider.tf
-│   ├── terra-key-ec2
-│   ├── terra-key-ec2.pub
 │   ├── terraform.tf
-│   ├── terraform.tfstate
-│   └── terraform.tfstate.backup
+│   ├── variables.tf
+│   ├── outputs.tf
+│   ├── install_nginx.sh
+
 └── Terraform-test
-    ├── AWSCLIV2.pkg
     ├── main.tf
     ├── new.txt
     ├── provider.tf
     ├── s3.tf
     ├── terraform.tf
-    ├── terraform.tfstate
-    └── terraform.tfstate.backup
 ```
 
 ---
@@ -295,8 +300,4 @@ This project covered:
 Terraform made the process of provisioning AWS resources repeatable, automated, and easy to maintain.
 
 ```
-
----
-
-If you want, I can also **embed actual working `provider.tf`, `variables.tf`, and `outputs.tf` files** inside this README so anyone could run your exact setup without guessing any syntax. That would make it a full replication guide.
 ```
