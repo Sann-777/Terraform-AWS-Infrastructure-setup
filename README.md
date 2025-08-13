@@ -1,7 +1,12 @@
-# Terraform AWS Infrastructure Setup
+# Terraform AWS Infrastructure – From Basics to Advanced State Management
 
-This project documents my journey of installing and using Terraform to provision AWS infrastructure using Infrastructure as Code (IaC).  
-It includes setting up an S3 bucket as an initial test, learning HashiCorp Configuration Language (HCL) in depth, working with variables and outputs, and then creating an EC2 instance with associated networking and security configurations.
+This project documents my journey with Terraform, starting from installing Terraform and AWS CLI, creating basic resources (S3, EC2), and progressing to advanced concepts such as:
+- Creating multiple EC2 instances using `count` and `for_each`
+- Conditional resource configuration
+- Advanced outputs with splat operators and loops
+- Terraform state management (local & remote)
+- Remote backend with S3 + DynamoDB for state locking
+- Multi-environment setup using Terraform workspaces & Git branches
 
 
 ---
