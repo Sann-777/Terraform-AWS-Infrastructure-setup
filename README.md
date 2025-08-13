@@ -1,8 +1,8 @@
-````markdown
 # Terraform AWS Infrastructure Setup
 
 This project documents my journey of installing and using Terraform to provision AWS infrastructure using Infrastructure as Code (IaC).  
 It includes setting up an S3 bucket as an initial test, learning HashiCorp Configuration Language (HCL) in depth, working with variables and outputs, and then creating an EC2 instance with associated networking and security configurations.
+
 
 ---
 
@@ -13,7 +13,6 @@ It includes setting up an S3 bucket as an initial test, learning HashiCorp Confi
 2. Install Terraform on the local machine and verify installation:
    ```bash
    terraform -version
-````
 
 ### 1.2 Initialize Terraform Environment
 
