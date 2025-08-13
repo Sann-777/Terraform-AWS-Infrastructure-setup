@@ -1,16 +1,26 @@
-# Terraform
-.terraform/
+# Terraform state files
 *.tfstate
 *.tfstate.backup
+*.tfstate.*.backup
+
+# Local Terraform settings
+.terraform/
 .terraform.lock.hcl
 
-# Keys
+# SSH private/public keys
+*.pem
 terra-key
 terra-key.pub
 
-# OS junk files
+# AWS CLI installer package
+AWSCLIV2.pkg
+
+# OS-specific files
 .DS_Store
+Thumbs.db
 
-# AWS installer
-awscliv2.pkg
+# Logs
+*.log
 
+# Temporary / test files
+new.txt

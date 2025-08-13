@@ -213,7 +213,7 @@ resource aws_security_group my_security_group {
 
 ---
 
-### 6.3 EC2 Instance Creation
+### 6.3 Single EC2 Instance Creation
 
 * **Instance Type**: `t3.micro` (from variables).
 * **Root Block Device**: Configured for storage.
@@ -239,6 +239,73 @@ resource "aws_instance" "my_instance" {
 }
 ```
 
+---
+
+### 6.4 Multiple EC2 Instances with `count`
+
+* Use `count` to create multiple identical instances
+* Use `[*]` in outputs to get all IPs/DNS
+
+Example:
+
+```hcl
+resource "aws_instance" "my_instance" {
+   count = 3
+   --remaining code--
+}
+```
+
+```hcl
+output "instance_public_ips" {
+  value = aws_instance.my_instances[*].public_ip
+}
+```
+
+---
+
+### 6.5 Multiple EC2 Instances with `for_each`
+
+* Create instances with different names
+* Output details with `for` loop
+
+Example:
+
+```hcl
+resource "aws_instance" "my_instance" {
+    
+    # count = 3
+
+    for_each = tomap({
+        automated_micro_instance = "t2.micro"
+        automated_small_instance = "t2.small"
+    }) # meta arguement
+    
+    depends_on = [ aws_security_group.my_security_group, aws_key_pair.my_key ]
+    
+    --remaining code--
+    instance_type = each.value
+    --remaining code--
+
+    # conditional storage
+    root_block_device {
+        volume_size = var.env == "prd" ? 20 : var.ec2_default_root_storage_size
+        volume_type = "gp3"
+    }
+    tags = {
+        Name = each.key
+        Environment = var.env
+    }
+}
+```
+
+```hcl
+output "instance_names_ips" {
+  value = {
+    for instance in aws_instance.my_instance : instance.public_ip
+  }
+}
+```
+
 Deploy:
 
 ```bash
@@ -246,6 +313,56 @@ terraform init
 terraform validate
 terraform plan
 terraform apply
+```
+
+---
+
+## 7. Terraform State Management
+
+### Commands:
+
+```bash
+terraform state list        # List active state resources
+terraform state show <res>  # Show details for a resource
+terraform state rm <res>    # Remove from state
+terraform import <res> <id> # Import AWS resource into state
+```
+
+---
+
+## 8. Remote Backend with S3 & DynamoDB for Avoiding State Conflicts
+
+### Benefits:
+
+* Centralized state
+* State locking prevents conflicts
+
+Example:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "state-bucket"
+    key            = "terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "state-table"
+  }
+}
+```
+
+---
+
+## 9. Multi-Environment with Workspaces & Git Branches
+
+* Use Terraform workspaces (`dev`, `prd`, `stg`)
+* Sync workspace with Git branch so that no new file has to be created for every workspace
+
+Commands:
+
+```bash
+terraform workspace new dev
+terraform workspace select dev
+git checkout -b dev
 ```
 
 ---
@@ -268,18 +385,22 @@ terraform apply
 ```
 ├── ec2
 │   ├── ec2.tf
+│   ├── install_nginx.sh
+│   ├── outputs.tf
 │   ├── provider.tf
 │   ├── terraform.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── install_nginx.sh
-
+│   └── variables.tf
+├── remote-infra
+│   ├── dynamodb.tf
+│   ├── providers.tf
+│   ├── s3.tf
+│   └── terraform.tf
 └── Terraform-test
     ├── main.tf
     ├── new.txt
     ├── provider.tf
     ├── s3.tf
-    ├── terraform.tf
+    └── terraform.tf
 ```
 
 ---
@@ -295,8 +416,14 @@ This project covered:
 * Using **output** blocks to retrieve connection info locally.
 * Creating AWS resources (S3 and EC2) with security groups, VPC, and key pairs.
 * Managing infrastructure with Terraform CLI commands locally.
+* Multi-instance creation with `count` & `for_each`
+* Conditional logic
+* Local & remote state management
+* State locking with DynamoDB to avoid state management conflict
+* Multi-environment deployments using workspaces + Git branches
 
 Terraform made the process of provisioning AWS resources repeatable, automated, and easy to maintain.
 
-```
-```
+---
+
+I kept everything in **chronological learning order** — starting from installation, basic S3, EC2, then gradually moving to multi-instance, conditional logic, state management, and finally remote backend & workspaces. 
